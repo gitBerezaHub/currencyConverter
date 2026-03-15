@@ -1,87 +1,75 @@
 <template>
-
   <div class="currency-row">
-
     <div class="header">
-
       <div class="title">
-        {{currency.name}}
-        <span>{{currency.code}}</span>
+        {{ currency.name }}
+        <span>{{ currency.code }}</span>
       </div>
 
-      <input
-          v-if="isBase"
-          v-model.number="amount"
-          class="amount"
-      />
+      <button class="remove" @click="$emit('remove')">✕</button>
+
+      <input v-if="isBase" v-model.number="amount" class="amount" />
 
       <div v-else class="amount">
-        {{converted}}
+        {{ converted }}
       </div>
-
     </div>
 
     <div class="rate">
-
-      <div
-          :class="{inactive: customRate}"
-      >
+      <div :class="{ inactive: localCustomRate }">
         Официальный курс: {{ formatNumber(rate) }}
       </div>
 
       <label>
-
-        <input
-            type="checkbox"
-            v-model="customRate"
-        />
+        <input type="checkbox" v-model="localCustomRate" @change="emitRate" />
 
         поменять курс
-
       </label>
 
       <input
-          v-if="customRate"
-          v-model.number="manual"
-          class="manual"
+        v-if="localCustomRate"
+        v-model.number="localManualRate"
+        class="manual"
+        @input="emitRate"
       />
-
     </div>
-
   </div>
-
 </template>
 
 <script setup>
-
-import { computed, ref, watch } from "vue"
-import { formatNumber } from "../utils/format"
+import { ref, computed, watch } from "vue";
+import { formatNumber } from "../utils/format";
 
 const props = defineProps({
-  currency:Object,
-  rate:Number,
-  baseAmount:Number,
-  isBase:Boolean
-})
+  currency: Object,
+  rate: Number,
+  baseAmount: Number,
+  isBase: Boolean,
+});
 
-const amount = ref(props.baseAmount)
+const emit = defineEmits(["updateBase", "updateRate", "remove"]);
 
-watch(amount,val=>{
-  emit("updateBase",val)
-})
+const amount = ref(props.baseAmount);
 
-const customRate = ref(false)
+watch(amount, (val) => {
+  emit("updateBase", val);
+});
 
-const manual = ref(props.rate)
+const localCustomRate = ref(props.currency.customRate);
+const localManualRate = ref(props.currency.manualRate || props.rate);
 
-const emit = defineEmits(["updateBase"])
+function emitRate() {
+  emit("updateRate", {
+    customRate: localCustomRate.value,
+    manualRate: localManualRate.value,
+  });
+}
 
-const activeRate = computed(() =>
-    customRate.value ? manual.value : props.rate
-)
+const activeRate = computed(() => {
+  return localCustomRate.value ? localManualRate.value : props.rate;
+});
 
-const converted = computed(() =>
-    formatNumber(props.baseAmount * activeRate.value)
-)
-
+const converted = computed(() => {
+  return formatNumber(props.baseAmount * activeRate.value);
+});
 </script>
